@@ -23,5 +23,5 @@ setup(
         "Programming Language :: Python",
     ],
     install_requires=["requests>=2.22.0"],
-    py_modules=["events"],
+    py_modules=["eventhooks"],
 )
