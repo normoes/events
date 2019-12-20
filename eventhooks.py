@@ -1,12 +1,12 @@
 """
 Events
 
-This is a module that provides events for:
-* mattermost
-* dockerhub
+Events is supposed to be an event module which sends webhooks to:
+* Mattermost
+* Dockerhub
 
-Events can trigger webhooks on the previously mentioned web services.
 """
+
 
 import logging
 
@@ -19,11 +19,25 @@ log.setLevel(logging.INFO)
 
 
 class WatchEvent:
-    def __init__(self, webhook=""):
+    """Event base class.
+    """
+
+    def __init__(self):
         pass
 
 
 class WebHook(WatchEvent):
+    """Webhook base class.
+
+    Makes the actual webhook trigger request.
+    Checks alloweed realms.
+
+    A realm is just a functionality, that allows to restrict events to certain types of triggers.
+
+    Example:
+    Though a webhook can be configured to trigger in case of events A and B, event B should not be triggered in case of event A and vice versa.
+    """
+
     HEADERS = {"Content-Type": "application/json"}
 
     def __init__(self, name="", url="", url_safe="", realms=None):
@@ -31,20 +45,18 @@ class WebHook(WatchEvent):
         self.url = url
         self.url_safe = url_safe
         self.realms = realms
-        log.debug("Webhook event URL {}".format(self.url_safe))
-        log.debug("Webhook event REALMS {}".format(self.realms))
+        log.debug(f"Webhook event URL '{self.url_safe}'.")
+        log.debug(f"Webhook event REALMS '{self.realms}'.")
         super().__init__()
 
     def _trigger(self, data=None, debug=False):
         if debug:
             return None
-        # print(self)
-        # return f"post {data} to  {self.url_safe}."
         response = None
         try:
             response = requests.post(self.url, json=data, headers=self.HEADERS)
         except (requests.exceptions.MissingSchema) as e:
-            log.error(f"Error: '{str(e)}'")
+            log.error(f"Error: '{str(e)}'.")
         if not response:
             log.error("No response.")
             return None
@@ -56,19 +68,24 @@ class WebHook(WatchEvent):
         return response
 
     def allowed(self, realm=None):
-        if not self.realms:
-            return False
-        allowed = realm in self.realms
+        """Check allowed realms.
+
+        If no realms are configured, triggering the webhook is allowed.
+        """
+
+        allowed = not self.realms or realm in self.realms
         if not allowed:
-            log.warning(f"Cannot trigger {str(self)}. {realm} not in {self.realms}")
-            return False
-        return True
+            log.warning(f"Cannot trigger '{str(self)}'. '{realm}' not in '{self.realms}'.")
+        return allowed
 
     def __str__(self):
         return self.name + ": " + self.url_safe
 
 
 class MattermostWebHook(WebHook):
+    """Mattermost webhook event.
+    """
+
     URL = "{host}/hooks/{token}"
 
     def __init__(self, name="", host="", token="", realms=None):
@@ -88,19 +105,22 @@ class MattermostWebHook(WebHook):
             repo = content.pop("repo", None)
         if not repo or not content:
             # trigger all builds
-            log.error("no info for trigger: {}".format(str(self)))
+            log.error(f"No info for trigger: '{str(self)}'.")
             return
-        log.warn(f"Mattermost webhook triggered for repo {repo}: {str(self)}")
-        data_ = {"text": f"{repo} was tagged: {content}"}
+        log.warn(f"Mattermost webhook triggered for repo '{repo}': '{str(self)}'.")
+        data_ = {"text": f"'{repo}' was tagged: '{content}'."}
         # trigger specific branch
         response = self._trigger(data=data_, debug=debug)
         if response:
             log.warn(
-                f"Mattermost webhook reponse: {response.status_code}, {response.text}"
+                f"Mattermost webhook reponse: '{response.status_code}', '{response.text}'."
             )
 
 
 class DockerCloudWebHook(WebHook):
+    """Dockerhub webhook event.
+    """
+
     URL = "https://hub.docker.com/api/build/v1/source/{source}/trigger/{token}/call/"
 
     def __init__(
@@ -125,19 +145,16 @@ class DockerCloudWebHook(WebHook):
         if not super().allowed(realm):
             return
         if not self.source_branch or not self.source_type:
-            # trigger all builds
-            log.error("no info for trigger: {}".format(str(self)))
+            log.error(f"No info for trigger: '{str(self)}'.")
             return
         log.warn(
-            f"Dockercloud webhook triggered for branch {self.source_branch}: {str(self)}"
+            f"Dockercloud webhook triggered for branch '{self.source_branch}': '{str(self)}'."
         )
         data_ = {"source_type": self.source_type, "source_name": self.source_branch}
-        # trigger specific branch
 
         response = self._trigger(data=data_, debug=debug)
         if response:
             log.warn(
-                f"Dockercloud webhook reponse: {response.status_code}, {response.text}"
+                f"Dockercloud webhook reponse: '{response.status_code}', '{response.text}'."
             )
-
 

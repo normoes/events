@@ -20,7 +20,7 @@ In the future, this can be optimized so giving no realm will always execute the 
 
 I use this module in the [`github_repo_watcher`](https://github.com/normoes/github_repo_watcher).
 
-To be brief, this `github_repo_watcher` checks a github repository for new commits to `master` and for new tags.
+To be brief, the `github_repo_watcher` checks a github repository for new commits to `master` and for new tags.
 
 Whenever a new commit or tag is found, 3 things happen:
 * The commit and tag are stored in a database.
