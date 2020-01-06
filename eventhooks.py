@@ -96,20 +96,14 @@ class MattermostWebHook(WebHook):
             realms=realms,
         )
 
-    def trigger(self, data, realm=None, debug=False):
+    def trigger(self, data=None, realm=None, debug=False):
         if not super().allowed(realm):
             return
-        content = data.get("content", None)
-        repo = None
-        if content:
-            repo = content.pop("repo", None)
-        if not repo or not content:
-            # trigger all builds
+        if not data:
             log.error(f"No info for trigger: '{str(self)}'.")
             return
-        log.warn(f"Mattermost webhook triggered for repo '{repo}': '{str(self)}'.")
-        data_ = {"text": f"'{repo}' was tagged: '{content}'."}
-        # trigger specific branch
+        log.warn(f"Trigger mattermost webhook: '{str(self)}' with '{data}'.")
+        data_ = {"text": f"{data}"}
         response = self._trigger(data=data_, debug=debug)
         if response:
             log.warn(
@@ -148,7 +142,7 @@ class DockerCloudWebHook(WebHook):
             log.error(f"No info for trigger: '{str(self)}'.")
             return
         log.warn(
-            f"Dockercloud webhook triggered for branch '{self.source_branch}': '{str(self)}'."
+            f"Trigger dockercloud webhook for '{self.source_type}' '{self.source_branch}': '{str(self)}'."
         )
         data_ = {"source_type": self.source_type, "source_name": self.source_branch}
 
