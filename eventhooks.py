@@ -4,26 +4,82 @@ Events
 Events is supposed to be an event module which sends webhooks to:
 * Mattermost
 * Dockerhub
+* Emails with AWS SES
 
 """
 
-
 import logging
+from typing import Tuple
+from smtplib import SMTPException
+import json
 
 import requests
 
+import mail.aws_ses
+import mail.message
+
 
 logging.basicConfig()
-log = logging.getLogger("Events")
-log.setLevel(logging.INFO)
+logger = logging.getLogger("EventHooks")
+logger.setLevel(logging.INFO)
 
 
 class WatchEvent:
     """Event base class.
     """
 
-    def __init__(self):
-        pass
+    def __init__(
+        self, name: str = "", description: str = "", realms: Tuple[str] = None
+    ):
+        self.name = name
+        self.description = description
+        self.realms = realms
+
+    def allowed(self, realm=None):
+        """Check allowed realms.
+
+        If no realms are configured, triggering the webhook is allowed.
+        """
+
+        allowed = not self.realms or realm in self.realms
+        if not allowed:
+            logger.warning(
+                f"Cannot trigger '{str(self)}'. '{realm}' not in '{self.realms}'."
+            )
+        return allowed
+
+    def __str__(self):
+        return f"{self.name}: {self.description}"
+
+
+class EmailHook(WatchEvent):
+    def __init__(
+        self,
+        name: str = "",
+        email: mail.message.Email = None,
+        realms: Tuple[str] = None,
+    ):
+        self.email = email
+
+        super().__init__(name=name, realms=realms)
+        if self.email:
+            self.description = self.email.recipients
+
+    def _trigger(self, data=None, debug=False):
+        if debug:
+            return None
+        try:
+            if isinstance(data, dict):
+                data_ = json.dumps(data, indent=2)
+            else:
+                # Assuming 'str' mostof the time.
+                data_ = str(data)
+            self.email.body_text = data_
+            self.email.send_mail()
+        except SMTPException as e:
+            logger.error(f"Error: '{str(e)}'.")
+            return
+        logger.debug(f"Email sent.")
 
 
 class WebHook(WatchEvent):
@@ -40,14 +96,12 @@ class WebHook(WatchEvent):
 
     HEADERS = {"Content-Type": "application/json"}
 
-    def __init__(self, name="", url="", url_safe="", realms=None):
-        self.name = name
+    def __init__(self, name="", url="", url_safe="", realms: Tuple[str] = None):
         self.url = url
         self.url_safe = url_safe
-        self.realms = realms
-        log.debug(f"Webhook event URL '{self.url_safe}'.")
-        log.debug(f"Webhook event REALMS '{self.realms}'.")
-        super().__init__()
+        logger.debug(f"Webhook event URL '{self.url_safe}'.")
+        logger.debug(f"Webhook event REALMS '{self.realms}'.")
+        super().__init__(name=name, description=self.url_safe, realms=realms)
 
     def _trigger(self, data=None, debug=False):
         if debug:
@@ -56,30 +110,16 @@ class WebHook(WatchEvent):
         try:
             response = requests.post(self.url, json=data, headers=self.HEADERS)
         except (requests.exceptions.MissingSchema) as e:
-            log.error(f"Error: '{str(e)}'.")
+            logger.error(f"Error: '{str(e)}'.")
         if not response:
-            log.error("No response.")
+            logger.error("No response.")
             return None
         try:
-            log.debug(f"[{response.status_code}], {response.json()}")
-        except:
-            log.debug(f"[{response.status_code}], {response.text}")
+            logger.debug(f"[{response.status_code}], {response.json()}")
+        except Exception:
+            logger.debug(f"[{response.status_code}], {response.text}")
 
         return response
-
-    def allowed(self, realm=None):
-        """Check allowed realms.
-
-        If no realms are configured, triggering the webhook is allowed.
-        """
-
-        allowed = not self.realms or realm in self.realms
-        if not allowed:
-            log.warning(f"Cannot trigger '{str(self)}'. '{realm}' not in '{self.realms}'.")
-        return allowed
-
-    def __str__(self):
-        return self.name + ": " + self.url_safe
 
 
 class MattermostWebHook(WebHook):
@@ -88,7 +128,7 @@ class MattermostWebHook(WebHook):
 
     URL = "{host}/hooks/{token}"
 
-    def __init__(self, name="", host="", token="", realms=None):
+    def __init__(self, name="", host="", token="", realms: Tuple[str] = None):
         super().__init__(
             name=name,
             url=self.URL.format(host=host, token=token),
@@ -100,14 +140,14 @@ class MattermostWebHook(WebHook):
         if not super().allowed(realm):
             return
         if not data:
-            log.error(f"No info for trigger: '{str(self)}'.")
+            logger.error(f"No info for trigger: '{str(self)}'.")
             return
-        log.warn(f"Trigger mattermost webhook: '{str(self)}' with '{data}'.")
+        logger.warn(f"Trigger mattermost webhook: '{str(self)}' with '{data}'.")
         data_ = {"text": f"{data}"}
         response = self._trigger(data=data_, debug=debug)
         if response:
-            log.warn(
-                f"Mattermost webhook reponse: '{response.status_code}', '{response.text}'."
+            logger.warn(
+                f"Mattermost webhook response: '{response.status_code}', '{response.text}'."
             )
 
 
@@ -124,7 +164,7 @@ class DockerCloudWebHook(WebHook):
         source_type="Branch",
         source="",
         token="",
-        realms=None,
+        realms: Tuple[str] = None,
     ):
         self.source_branch = source_branch
         self.source_type = source_type
@@ -139,16 +179,36 @@ class DockerCloudWebHook(WebHook):
         if not super().allowed(realm):
             return
         if not self.source_branch or not self.source_type:
-            log.error(f"No info for trigger: '{str(self)}'.")
+            logger.error(f"No info for trigger: '{str(self)}'.")
             return
-        log.warn(
+        logger.warn(
             f"Trigger dockercloud webhook for '{self.source_type}' '{self.source_branch}': '{str(self)}'."
         )
         data_ = {"source_type": self.source_type, "source_name": self.source_branch}
 
         response = self._trigger(data=data_, debug=debug)
         if response:
-            log.warn(
-                f"Dockercloud webhook reponse: '{response.status_code}', '{response.text}'."
+            logger.warn(
+                f"Dockercloud webhook response: '{response.status_code}', '{response.text}'."
             )
 
+
+class AwsSesEmailHook(EmailHook):
+    """AWS SES email hook event.
+    """
+
+    def __init__(
+        self,
+        name="",
+        # recipients:List[str]=None,
+        realms: Tuple[str] = None,
+    ):
+        email = mail.aws_ses.AwsSesEmail()
+
+        super().__init__(name=name, email=email, realms=realms)
+
+    def trigger(self, data, realm=None, debug=False):
+        if not super().allowed(realm):
+            return
+        logger.warn(f"Trigger AWS SES email hook for: '{str(self)}'.")
+        self._trigger(data=data, debug=debug)
