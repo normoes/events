@@ -105,9 +105,9 @@ class WebHook(WatchEvent):
     def __init__(self, name="", url="", url_safe="", realms: Tuple[str] = None):
         self.url = url
         self.url_safe = url_safe
+        super().__init__(name=name, description=f"To '{self.url_safe}'.", realms=realms)
         logger.debug(f"Webhook event URL '{self.url_safe}'.")
         logger.debug(f"Webhook event REALMS '{self.realms}'.")
-        super().__init__(name=name, description=f"To '{self.url_safe}'.", realms=realms)
 
     def _trigger(self, data=None, debug=False):
         if debug:
