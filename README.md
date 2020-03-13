@@ -97,21 +97,21 @@ The email hook can be configured like this:
         realms=(GITHUB_REALMS[GITHUB_TAG_REALM],),
     )
 ```
+### Configuration
 
 The email connection and message need to be configured using environment variables.
 
-So far emails are sent in plain text only.
-
-`TLS` is used by default.
-
 The following configuration options exist;
 * Email connection:
+
 | environment variable | description | default value |
 |----------------------|-------------|---------------|
 | `HOST` | AWS SES server name.. |  `"email-smtp.us-west-2.amazonaws.com"` |
 | `PORT` | AWS SES port. | `587` |
 | `AWS_SES_CREDENTIALS` | AWS SES credentials (expected format: `user:password`). |  `""` |
+
 * Email message:
+
 | environment variable | description | default value |
 |----------------------|-------------|---------------|
 | `SENDER` | `From` email address (`someone@somewhere.com`). |  `""` |
@@ -121,14 +121,41 @@ The following configuration options exist;
 | `SUBJECT` | Email subject. | `""` |
 | `BODY_TEXT` | Email body. | `""` |
 
+**_Note_**:
+* So far emails are sent in plain text only.
+* `TLS` is used by default.
+* If no email subject is configured using the environment variable `SUBJECT`, the  name of the `AwsSesEmailHook` will be used as the email's subject by default. Of course this can be changed later on:
+```python
+    # Set the email's subject.
+    aws_ses_email_trigger.email.subject = "Something else."
+```
+
+
+#### AWS Lambda
+
+Please refer to the file `mail/environment_variables.py`.
+
+With AWS Lambda functions some of the environment variables are expected to be encrypted:
+* `AWS_SES_CREDENTIALS`
+* `SENDER`
+* `SENDER_NAME`
+* `RECIPIENTS`
+* `CONFIGURATION_SET`
+* `SUBJECT`
+* `BODY_TEXT`
+
+### Email body
+
 Like mentioned earlier (See **Example webhook**), every event is essentially triggered like this:
 ```python
     event.trigger(data="Found new tag for repo <some_github_repo>.", realm=GITHUB_TAG_REALM)
 ```
-
 This is also true for the `AwsSesEmailHook`.
 
-Furthermore, email hooks can be triggered with:
+**_Note_**:
+* The `data` argument is used as the email's body text.
+
+**_Note_** - The hook accepts `str` and `dict` as body text:
 * `event.trigger(data="Some string")` (`str`)
 * `event.trigger(data={"error": "Weird error.", "cause": "Human factor."})` (`dict`)
-  - in this case, the JSON is indented.
+  - In this case, the JSON is indented.

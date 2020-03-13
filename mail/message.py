@@ -1,18 +1,15 @@
 import email.utils
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import os
 
-# Email message options.
-SENDER = os.getenv("SENDER", "")
-SENDER_NAME = os.getenv("SENDER_NAME", "")
-# Comma separated list of recipients.
-RECIPIENTS = os.getenv("RECIPIENTS", "")
-# [Optional] The name of configuration set to use for this message.
-# Used with '"X-SES-CONFIGURATION-SET' header.
-CONFIGURATION_SET = os.getenv("CONFIGURATION_SET", None)
-SUBJECT = os.getenv("SUBJECT", "")
-BODY_TEXT = os.getenv("BODY_TEXT", "")
+from mail.environment_variables import (
+    SENDER,
+    SENDER_NAME,
+    RECIPIENTS,
+    CONFIGURATION_SET,
+    SUBJECT,
+    BODY_TEXT,
+)
 
 
 class Email:
@@ -38,15 +35,24 @@ class Email:
         for recipient in recipients_:
             self.recipients.append(recipient.strip())
         self.configuration_set = configuration_set
-        self.subject = subject
+        self._subject = subject
         self._body_text = body_text
 
         self.msg = MIMEMultipart("alternative")
-        self.msg["Subject"] = self.subject
+        self.msg["Subject"] = self._subject
         self.msg["From"] = email.utils.formataddr((self.sender_name, self.sender))
         self.msg["To"] = ", ".join(self.recipients)
         if self.configuration_set:
             self.msg.add_header("X-SES-CONFIGURATION-SET", CONFIGURATION_SET)
+
+    @property
+    def subject(self):
+        return self._subject
+
+    @subject.setter
+    def subject(self, value):
+        self._subject = str(value)
+        self.msg.replace_header("Subject", self._subject)
 
     @property
     def body_text(self):
