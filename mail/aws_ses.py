@@ -1,25 +1,22 @@
 import smtplib
-import os
-import sys
 import logging
 
 import mail.message
+from mail.environment_variables import (
+    HOST,
+    PORT,
+    AWS_SES_CREDENTIALS,
+    SENDER,
+    SENDER_NAME,
+    RECIPIENTS,
+    CONFIGURATION_SET,
+    SUBJECT,
+    BODY_TEXT,
+)
 
 logging.basicConfig()
 logger = logging.getLogger("AWSSESMAIL")
 logger.setLevel(logging.INFO)
-
-
-# Email connection options.
-# AWS SES region endpoint.
-HOST = os.getenv("HOST", "email-smtp.us-west-2.amazonaws.com")
-try:
-    PORT = int(os.getenv("PORT", 587))
-except ValueError:
-    print(f"PORT is expected tobe of type 'int', but value is '{os.getenv('PORT')}'.")
-    sys.exit(1)
-# AWS SES credentials expectedformat: "<user>:<password>"
-AWS_SES_CREDENTIALS = os.getenv("AWS_SES_CREDENTIALS", "")
 
 
 class AwsSesEmail(mail.message.Email):
@@ -28,16 +25,28 @@ class AwsSesEmail(mail.message.Email):
         host: str = HOST,
         port: int = PORT,
         aws_ses_credentials: str = AWS_SES_CREDENTIALS,
+        sender: str = SENDER,
+        sender_name: str = SENDER_NAME,
+        recipients: str = RECIPIENTS,
+        configuration_set: str = CONFIGURATION_SET,
+        subject: str = SUBJECT,
+        body_text: str = BODY_TEXT,
     ):
-        super().__init__()
+        super().__init__(
+            sender=sender,
+            sender_name=sender_name,
+            recipients=recipients,
+            configuration_set=configuration_set,
+            subject=subject,
+            body_text=body_text,
+        )
         self.host = host
-        logger.info(f"msg: '{self.host}'")
+        logger.debug(f"msg: '{self.host}'")
         self.port = port
-        logger.info(f"msg: '{self.port}'")
-        logger.info(f"creds: '{aws_ses_credentials}'")
+        logger.debug(f"msg: '{self.port}'")
         self.user, self.password = aws_ses_credentials.split(":")
         # self.msg = message.Email()
-        logger.info(f"msg: '{self.msg}'")
+        logger.debug(f"msg: '{self.msg}'")
 
     def send_mail(self):
         # Attach the body to the 'msg'.
@@ -58,3 +67,4 @@ class AwsSesEmail(mail.message.Email):
         )
         # {}
         server.quit()
+        logger.info("Email sent.")

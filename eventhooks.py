@@ -49,7 +49,10 @@ class WatchEvent:
         return allowed
 
     def __str__(self):
-        return f"{self.name}: {self.description}"
+        result = [f"Event '{self.name}'."]
+        if self.description:
+            result.append(self.description)
+        return " ".join(result)
 
 
 class EmailHook(WatchEvent):
@@ -62,8 +65,6 @@ class EmailHook(WatchEvent):
         self.email = email
 
         super().__init__(name=name, realms=realms)
-        if self.email:
-            self.description = self.email.recipients
 
     def _trigger(self, data=None, debug=False):
         if debug:
@@ -79,7 +80,12 @@ class EmailHook(WatchEvent):
         except SMTPException as e:
             logger.error(f"Error: '{str(e)}'.")
             return
-        logger.debug(f"Email sent.")
+
+    def __str__(self):
+        return (
+            super().__str__()
+            + f"With subject '{self.email.subject}' to '{self.email.recipients}'."
+        )
 
 
 class WebHook(WatchEvent):
@@ -101,7 +107,7 @@ class WebHook(WatchEvent):
         self.url_safe = url_safe
         logger.debug(f"Webhook event URL '{self.url_safe}'.")
         logger.debug(f"Webhook event REALMS '{self.realms}'.")
-        super().__init__(name=name, description=self.url_safe, realms=realms)
+        super().__init__(name=name, description=f"To '{self.url_safe}'.", realms=realms)
 
     def _trigger(self, data=None, debug=False):
         if debug:
@@ -204,6 +210,8 @@ class AwsSesEmailHook(EmailHook):
         realms: Tuple[str] = None,
     ):
         email = mail.aws_ses.AwsSesEmail()
+        if not email.subject:
+            email.subject = name
 
         super().__init__(name=name, email=email, realms=realms)
 
