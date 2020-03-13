@@ -10,13 +10,13 @@ Events is supposed to be an event module which sends webhooks to:
 
 import logging
 from typing import Tuple
-from smtplib import SMTPException
 import json
 
 import requests
 
 import mail.aws_ses
 import mail.message
+from mail.exceptions import EmailException
 
 
 logging.basicConfig()
@@ -77,7 +77,7 @@ class EmailHook(WatchEvent):
                 data_ = str(data)
             self.email.body_text = data_
             self.email.send_mail()
-        except SMTPException as e:
+        except EmailException as e:
             logger.error(f"Error: '{str(e)}'.")
             return
 
@@ -115,7 +115,10 @@ class WebHook(WatchEvent):
         response = None
         try:
             response = requests.post(self.url, json=data, headers=self.HEADERS)
-        except (requests.exceptions.MissingSchema) as e:
+        except (
+            requests.exceptions.MissingSchema,
+            requests.exceptions.RequestException,
+        ) as e:
             logger.error(f"Error: '{str(e)}'.")
         if not response:
             logger.error("No response.")

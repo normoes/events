@@ -13,6 +13,7 @@ from mail.environment_variables import (
     SUBJECT,
     BODY_TEXT,
 )
+from mail.exceptions import EmailException
 
 logging.basicConfig()
 logger = logging.getLogger("AWSSESMAIL")
@@ -51,22 +52,25 @@ class AwsSesEmail(mail.message.Email):
         logger.debug(f"msg: '{self.msg}'")
 
     def send_mail(self):
-        # Attach the body to the 'msg'.
-        self.attach_body()
+        try:
+            # Attach the body to the 'msg'.
+            self.attach_body()
 
-        # stmplib docs recommend calling ehlo() before & after starttls()
-        server = smtplib.SMTP(host=self.host, port=self.port)
-        server.ehlo()
-        # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
-        server.starttls()
-        # (220, 'Ready to start TLS')
-        server.ehlo()
-        # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
-        server.login(user=self.user, password=self.password)
-        # (235, 'Authentication successful.')
-        server.send_message(
-            from_addr=self.sender, to_addrs=self.recipients, msg=self.msg
-        )
-        # {}
-        server.quit()
-        logger.info("Email sent.")
+            # stmplib docs recommend calling ehlo() before & after starttls()
+            server = smtplib.SMTP(host=self.host, port=self.port)
+            server.ehlo()
+            # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
+            server.starttls()
+            # (220, 'Ready to start TLS')
+            server.ehlo()
+            # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
+            server.login(user=self.user, password=self.password)
+            # (235, 'Authentication successful.')
+            server.send_message(
+                from_addr=self.sender, to_addrs=self.recipients, msg=self.msg
+            )
+            # {}
+            server.quit()
+            logger.info("Email sent.")
+        except Exception as e:
+            raise EmailException(str(e))
