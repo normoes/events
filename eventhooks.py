@@ -224,7 +224,7 @@ class SimpleEmailHook(EmailHook):
         recipients: Union[List[str], str] = None,
         realms: Tuple[str] = None,
     ):
-        email = mail.aws_ses.SimpleEmail(
+        email = mail.simple.SimpleEmail(
             host=host,
             port=port,
             recipients=recipients,
