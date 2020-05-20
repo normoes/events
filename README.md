@@ -1,21 +1,24 @@
 # Events
 
-This is a module that provides events for:
-* mattermost
-* dockerhub
-* AWS SES emails
+`eventhooks` can trigger webhooks for web services:
+* Mattermost
+* Dockerhub
 
-Events can trigger webhooks on the previously mentioned web services.
+`eventhooks` can send emails:
+* Simple emails (requires host, port, user and password)
+* AWS SES emails (using `boto3`, requires AWS credentials)
 
 **_Note_**:
 
 Of course, events could do a lot more. If you have an idea, please just create an issue and describe it.
 
-Additionally events can be configured with relams.
+Additionally, events can be configured with relams.
 Realms provide a context to an event and restrict the event action by caller origin.
 
-Right now, there always needs to be a valid realm.
-In the future, this can be optimized so giving no realm will always execute the event action.
+**_Example_**:
+
+A realm can be e.g. a simple string, which is set on initialization.
+When triggered, the trigger method can be given a realm as well, which is compared against the realms given on initialization. Only if the given trigger realm is found in the list of realms the event is actually triggered.
 
 ## Example webhook
 
@@ -85,21 +88,43 @@ This is used in the [`github_repo_watcher`](https://github.com/normoes/github_re
 
 To get a basic understanding of the `github_repo_watcher` (used as an example) please refer to the point **Example webhook**.
 
-There is only one email hook supported and tested right now:
+There are two email hooks supported and tested right now:
+* `SimpleEmailHook`
+    - Uses `smtplib` and requires host, port, user and password.
+    - User and password are provided in the following format: `user:password` (see example below).
 * `AwsSesEmailHook`
+    - Uses `boto3` and requires AWS credentials (AWS access key ID and AWS secret access key).
 
-It's possible that this hook is also working for other email servers, but I cannot say for sure, because I did not test it.
-
-The email hook can be configured like this:
+A `SimpleEmailHook` can be configured like this:
 ```python
-    aws_ses_email_trigger = AwsSesEmailHook(
-        name="aws_ses_email_event",
+    simple_email_trigger = SimpleEmailHook(
+        name="simple_email_event",
+        host="email-smtp.eu-west-1.amazonaws.com",
+        port=587,
+        credentials="user:password",
+        sender="someone@somwhere.com",
+        sender_name="someone",
+        recipients="mew@xyz.com,you@xyz.com",
         realms=(GITHUB_REALMS[GITHUB_TAG_REALM],),
     )
 ```
-### Configuration
 
-The email connection and message need to be configured using environment variables.
+The `AwsSesEmailHook` can be configured like this:
+```python
+    aws_ses_email_trigger = AwsSesEmailHook(
+        name="aws_ses_email_event",
+        sender="someone@somwhere.com",
+        sender_name="someone",
+        recipients=["me@peer.xyz"],
+        realms=(GITHUB_REALMS[GITHUB_TAG_REALM],),
+    )
+```
+
+### SimpleEmailHook Configuration
+
+The email connection and message can be configured using environment variables.
+
+Some of the settings can be configured as attributes when creating an event.
 
 The following configuration options exist;
 * Email connection:
@@ -108,7 +133,7 @@ The following configuration options exist;
 |----------------------|-------------|---------------|
 | `HOST` | AWS SES server name.. |  `"email-smtp.us-west-2.amazonaws.com"` |
 | `PORT` | AWS SES port. | `587` |
-| `AWS_SES_CREDENTIALS` | AWS SES credentials (expected format: `user:password`). |  `""` |
+| `CREDENTIALS` | e.g. AWS SES credentials (expected format: `user:password`). |  `""` |
 
 * Email message:
 
@@ -117,26 +142,55 @@ The following configuration options exist;
 | `SENDER` | `From` email address (`someone@somewhere.com`). |  `""` |
 | `SENDER_NAME` | `From` real name (`someone`). | `""` |
 | `RECIPIENTS` | Comma separated recipients' email addresses (`some@nowhere.com, one@here.org`). |  `""` |
-| `CONFIGURATION_SET` | [OPTIONAL] The name of configuration set to use for this message. | `None` |
+| `CONFIGURATION_SET` | [OPTIONAL] The name of AWS configuration set to use for this message. | `None` |
 | `SUBJECT` | Email subject. | `""` |
 | `BODY_TEXT` | Email body. | `""` |
 
 **_Note_**:
 * So far emails are sent in plain text only.
-* `TLS` is used by default.
-* If no email subject is configured using the environment variable `SUBJECT`, the  name of the `AwsSesEmailHook` will be used as the email's subject by default. Of course this can be changed later on:
+* `TLS` is used by default and as the only options.
+* If no email subject is configured using the environment variable `SUBJECT`, the `name` of the `SimpleEmailHook` will be used as the email's subject by default. Of course this can be changed later on:
+```python
+    # Set the email's subject.
+    simple_email_trigger.email.subject = "Something else."
+```
+
+### AwsSesEmailHook Configuration
+
+The email message can be configured using environment variables.
+
+Some of the settings can be configured as attributes when creating an event.
+
+It is not necessary to configure a connection like done with a `SimpleEmailHook` - The AWS account is used.
+
+This hook requires AWS credentials (AWS access key ID and AWS secret access key).
+
+* Email message:
+
+| environment variable | description | default value |
+|----------------------|-------------|---------------|
+| `SENDER` | `From` email address (`someone@somewhere.com`). |  `""` |
+| `SENDER_NAME` | `From` real name (`someone`). | `""` |
+| `RECIPIENTS` | Comma separated recipients' email addresses (`some@nowhere.com, one@here.org`). |  `""` |
+| `CONFIGURATION_SET` | [OPTIONAL] The name of AWS configuration set to use for this message. | `None` |
+| `SUBJECT` | Email subject. | `""` |
+| `BODY_TEXT` | Email body. | `""` |
+
+**_Note_**:
+* So far emails are sent in plain text only.
+* If no email subject is configured using the environment variable `SUBJECT`, the `name` of the `AwsSesEmailHook` will be used as the email's subject by default. Of course this can be changed later on:
 ```python
     # Set the email's subject.
     aws_ses_email_trigger.email.subject = "Something else."
 ```
 
 
-#### AWS Lambda
+### AWS Lambda
 
 Please refer to the file `mail/environment_variables.py`.
 
 With AWS Lambda functions some of the environment variables are expected to be encrypted:
-* `AWS_SES_CREDENTIALS`
+* `CREDENTIALS`
 * `SENDER`
 * `SENDER_NAME`
 * `RECIPIENTS`
@@ -150,7 +204,7 @@ Like mentioned earlier (See **Example webhook**), every event is essentially tri
 ```python
     event.trigger(data="Found new tag for repo <some_github_repo>.", realm=GITHUB_TAG_REALM)
 ```
-This is also true for the `AwsSesEmailHook`.
+This is also true for the `SimpleEmailHook` as well as `AwsSesEmailHook`.
 
 **_Note_**:
 * The `data` argument is used as the email's body text.
@@ -159,3 +213,12 @@ This is also true for the `AwsSesEmailHook`.
 * `event.trigger(data="Some string")` (`str`)
 * `event.trigger(data={"error": "Weird error.", "cause": "Human factor."})` (`dict`)
   - In this case, the JSON is indented.
+
+Internally something it works like this (simplified):
+```python
+    def trigger(data=None):
+    ...
+    # Set the email body with the 'data' argument.
+    email.body_text = data
+    email.send()
+```

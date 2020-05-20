@@ -1,7 +1,7 @@
 import os
 import sys
 
-AWS_SES_CREDENTIALS_DEFAULT = ""
+CREDENTIALS_DEFAULT = ""
 SENDER_DEFAULT = ""
 SENDER_NAME_DEFAULT = ""
 BODY_TEST_DEFAULT = ""
@@ -21,15 +21,15 @@ if "SERVERTYPE" in os.environ and os.environ["SERVERTYPE"] == "AWS Lambda":
     from base64 import b64decode
 
     # AWS SES credentials expectedformat: "<user>:<password>"
-    ENCRYPTED = os.getenv("AWS_SES_CREDENTIALS", None)
+    ENCRYPTED = os.getenv("CREDENTIALS", None)
     if ENCRYPTED:
-        AWS_SES_CREDENTIALS = bytes.decode(
+        CREDENTIALS = bytes.decode(
             boto3.client("kms").decrypt(CiphertextBlob=b64decode(ENCRYPTED))[
                 "Plaintext"
             ]
         )
     else:
-        AWS_SES_CREDENTIALS = AWS_SES_CREDENTIALS_DEFAULT
+        CREDENTIALS = CREDENTIALS_DEFAULT
 
     # Email message options.
     ENCRYPTED = os.getenv("SENDER", None)
@@ -90,7 +90,7 @@ if "SERVERTYPE" in os.environ and os.environ["SERVERTYPE"] == "AWS Lambda":
         BODY_TEXT = BODY_TEST_DEFAULT
 else:
     # AWS SES credentials expectedformat: "<user>:<password>"
-    AWS_SES_CREDENTIALS = os.getenv("AWS_SES_CREDENTIALS", AWS_SES_CREDENTIALS_DEFAULT)
+    CREDENTIALS = os.getenv("CREDENTIALS", CREDENTIALS_DEFAULT)
 
     # Email message options.
     SENDER = os.getenv("SENDER", SENDER_DEFAULT)

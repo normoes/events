@@ -15,6 +15,7 @@ import json
 import requests
 
 import mail.aws_ses
+import mail.simple
 import mail.message
 from mail.exceptions import EmailException
 
@@ -70,11 +71,13 @@ class EmailHook(WatchEvent):
         if debug:
             return None
         try:
-            if isinstance(data, dict):
-                data_ = json.dumps(data, indent=2)
-            else:
-                # Assuming 'str' mostof the time.
-                data_ = str(data)
+            data_ = ""
+            if data:
+                if isinstance(data, dict):
+                    data_ = json.dumps(data, indent=2)
+                else:
+                    # Assuming 'str' most of the time.
+                    data_ = str(data)
             self.email.body_text = data_
             self.email.send_mail()
         except EmailException as e:
@@ -84,7 +87,7 @@ class EmailHook(WatchEvent):
     def __str__(self):
         return (
             super().__str__()
-            + f"With subject '{self.email.subject}' to '{self.email.recipients}'."
+            + f" With subject '{self.email.subject}' to '{self.email.recipients}'."
         )
 
 
@@ -202,8 +205,14 @@ class DockerCloudWebHook(WebHook):
             )
 
 
-class AwsSesEmailHook(EmailHook):
-    """AWS SES email hook event.
+class SimpleEmailHook(EmailHook):
+    """Simple email hook event.
+
+    Needs host and portas well as user credentials (user,password).
+    User credentials are expected to come in the following format: 'user:password'.
+
+    This can also be used with AWS SES.
+    Existing AWS SES SMTP Credentials should be used.
     """
 
     def __init__(
@@ -211,14 +220,51 @@ class AwsSesEmailHook(EmailHook):
         name="",
         host: str = "",
         port: int = 0,
-        aws_ses_credentials: str = "",
+        credentials: str = "",
+        sender: str = "",
+        sender_name: str = "",
+        recipients: Union[List[str], str] = None,
+        realms: Tuple[str] = None,
+    ):
+        email = mail.simple.SimpleEmail(
+            host=host,
+            port=port,
+            recipients=recipients,
+            sender=sender,
+            sender_name=sender_name,
+            credentials=credentials,
+        )
+        if not email.subject:
+            email.subject = name
+
+        super().__init__(name=name, email=email, realms=realms)
+
+    def trigger(self, data, realm=None, debug=False):
+        if not super().allowed(realm):
+            return
+        logger.warn(f"Trigger Simple email hook for: '{str(self)}'.")
+        self._trigger(data=data, debug=debug)
+
+
+class AwsSesEmailHook(EmailHook):
+    """AWS SES email hook event.
+
+    This requires an existing AWS profile or AWS credentials (AWS access key ID and AWS secret access key).
+    It does not require AWS SES SMTP Credentials.
+
+    No roles or policies are created.
+    """
+
+    def __init__(
+        self,
+        name="",
         sender: str = "",
         sender_name: str = "",
         recipients: Union[List[str], str] = None,
         realms: Tuple[str] = None,
     ):
         email = mail.aws_ses.AwsSesEmail(
-            host=host, port=port, recipients=recipients, sender=sender
+            recipients=recipients, sender=sender, sender_name=sender_name,
         )
         if not email.subject:
             email.subject = name
