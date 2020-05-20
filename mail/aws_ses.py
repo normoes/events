@@ -1,7 +1,8 @@
 import smtplib
 import logging
 from typing import List, Union
-from base64 import b64encode
+
+# from base64 import b64encode
 
 import mail.message
 from mail.environment_variables import (
@@ -53,8 +54,10 @@ class AwsSesEmail(mail.message.Email):
         )
         if ":" in aws_ses_credentials_:
             credentials = aws_ses_credentials_.split(":")
-            self.user = b64encode(credentials[0].encode()).decode()
-            self.password = b64encode(credentials[1].encode()).decode()
+            # self.user = b64encode(credentials[0].encode()).decode()
+            # self.password = b64encode(credentials[1].encode()).decode()
+            self.user = credentials[0].strip()
+            self.password = credentials[1].strip()
         # self.msg = message.Email()
         logger.debug(f"msg: '{self.msg}'")
 
