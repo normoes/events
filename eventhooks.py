@@ -73,8 +73,10 @@ class EmailHook(WatchEvent):
             if isinstance(data, dict):
                 data_ = json.dumps(data, indent=2)
             else:
-                # Assuming 'str' mostof the time.
+                # Assuming 'str' most of the time.
                 data_ = str(data)
+            logger.warning(data_)
+            logger.warning(type(data_))
             self.email.body_text = data_
             self.email.send_mail()
         except EmailException as e:
@@ -218,10 +220,18 @@ class AwsSesEmailHook(EmailHook):
         realms: Tuple[str] = None,
     ):
         email = mail.aws_ses.AwsSesEmail(
-            host=host, port=port, recipients=recipients, sender=sender
+            host=host,
+            port=port,
+            recipients=recipients,
+            sender=sender,
+            sender_name=sender_name,
+            aws_ses_credentials=aws_ses_credentials,
         )
         if not email.subject:
             email.subject = name
+        print(email.sender)
+        print(email.sender_name)
+        print(email.recipients)
 
         super().__init__(name=name, email=email, realms=realms)
 
