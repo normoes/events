@@ -1,6 +1,8 @@
-import smtplib
+# import smtplib
 import logging
 from typing import List, Union
+import boto3
+from botocore.exceptions import ClientError
 
 # from base64 import b64encode
 
@@ -63,31 +65,57 @@ class AwsSesEmail(mail.message.Email):
 
     def send_mail(self):
         try:
-            # Attach the body to the 'msg'.
-            logger.warning(f"attach")
-            self.attach_body()
+            logger.warning("approach 1.e")
+            CHARSET = "UTF-8"
 
-            logger.warning(f"smtlib")
-            # stmplib docs recommend calling ehlo() before & after starttls()
-            server = smtplib.SMTP(host=self.host, port=self.port)
-            logger.warning(f"ehlo")
-            server.ehlo()
-            # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
-            logger.warning(f"starttls")
-            server.starttls()
-            # (220, 'Ready to start TLS')
-            logger.warning(f"ehlo")
-            server.ehlo()
-            # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
-            logger.warning(f"login")
-            server.login(user=self.user, password=self.password)
-            # (235, 'Authentication successful.')
-            logger.warning(f"send")
-            server.send_message(
-                from_addr=self.sender, to_addrs=self.recipients, msg=self.msg
-            )
-            # {}
-            server.quit()
+            # Create a new SES resource and specify a region.
+            client = boto3.client("ses")
+
+            # Try to send the email.
+            try:
+                # Provide the contents of the email.
+                response = client.send_email(
+                    Destination={"ToAddresses": ["norman@cryptosphere-systems.com"]},
+                    Message={
+                        "Body": {"Text": {"Charset": CHARSET, "Data": "whooooho"}},
+                        "Subject": {"Charset": CHARSET, "Data": "testmail"},
+                    },
+                    Source="test@community.xmr.to",
+                    # # If you are not using a configuration set, comment or delete the
+                    # # following line
+                    # ConfigurationSetName=CONFIGURATION_SET,
+                )
+            # Display an error if something goes wrong.
+            except ClientError as e:
+                print(e.response["Error"]["Message"])
+            else:
+                print("Email sent! Message ID:"),
+                print(response["MessageId"])
+            # # Attach the body to the 'msg'.
+            # logger.warning(f"attach")
+            # self.attach_body()
+
+            # logger.warning(f"smtlib")
+            # # stmplib docs recommend calling ehlo() before & after starttls()
+            # server = smtplib.SMTP(host=self.host, port=self.port)
+            # logger.warning(f"ehlo")
+            # server.ehlo()
+            # # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
+            # logger.warning(f"starttls")
+            # server.starttls()
+            # # (220, 'Ready to start TLS')
+            # logger.warning(f"ehlo")
+            # server.ehlo()
+            # # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
+            # logger.warning(f"login")
+            # server.login(user=self.user, password=self.password)
+            # # (235, 'Authentication successful.')
+            # logger.warning(f"send")
+            # server.send_message(
+            #     from_addr=self.sender, to_addrs=self.recipients, msg=self.msg
+            # )
+            # # {}
+            # server.quit()
             logger.info("Email sent.")
         except Exception as e:
             logger.warning(f"user '{self.user}'")
