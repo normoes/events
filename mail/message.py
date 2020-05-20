@@ -26,11 +26,13 @@ class Email:
         # Alternatively the DNS needs to be verified.
         self.sender = sender
         self.sender_name = sender_name
-        if isinstance(recipients, list):
-            recipients_ = recipients
-        else:
-            # Assuming 'str'.
-            recipients_ = recipients.split(",")
+        recipients_ = []
+        if recipients:
+            if isinstance(recipients, list):
+                recipients_ = recipients
+            else:
+                # Assuming 'str'.
+                recipients_ = recipients.split(",")
         self.recipients = []
         for recipient in recipients_:
             self.recipients.append(recipient.strip())

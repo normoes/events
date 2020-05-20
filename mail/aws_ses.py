@@ -41,9 +41,9 @@ class AwsSesEmail(mail.message.Email):
             subject=subject,
             body_text=body_text,
         )
-        self.host = host
+        self.host = host if host else HOST
         logger.debug(f"msg: '{self.host}'")
-        self.port = port
+        self.port = port if port else PORT
         logger.debug(f"msg: '{self.port}'")
         self.user = self.password = ""
         if ":" in aws_ses_credentials:
