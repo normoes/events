@@ -1,3 +1,5 @@
+from typing import List, Union
+
 import email.utils
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -17,15 +19,15 @@ class Email:
         self,
         sender: str = SENDER,
         sender_name: str = SENDER_NAME,
-        recipients: str = RECIPIENTS,
+        recipients: Union[List[str], str] = RECIPIENTS,
         configuration_set: str = CONFIGURATION_SET,
         subject: str = SUBJECT,
         body_text: str = BODY_TEXT,
     ):
         # This address must be verified with AWS SES.
         # Alternatively the DNS needs to be verified.
-        self.sender = sender
-        self.sender_name = sender_name
+        self.sender = sender if sender else SENDER
+        self.sender_name = sender_name if sender_name else SENDER_NAME
         recipients_ = []
         if recipients:
             if isinstance(recipients, list):

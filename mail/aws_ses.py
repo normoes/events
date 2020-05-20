@@ -1,5 +1,6 @@
 import smtplib
 import logging
+from typing import List, Union
 
 import mail.message
 from mail.environment_variables import (
@@ -28,7 +29,7 @@ class AwsSesEmail(mail.message.Email):
         aws_ses_credentials: str = AWS_SES_CREDENTIALS,
         sender: str = SENDER,
         sender_name: str = SENDER_NAME,
-        recipients: str = RECIPIENTS,
+        recipients: Union[List[str], str] = RECIPIENTS,
         configuration_set: str = CONFIGURATION_SET,
         subject: str = SUBJECT,
         body_text: str = BODY_TEXT,
@@ -46,8 +47,11 @@ class AwsSesEmail(mail.message.Email):
         self.port = port if port else PORT
         logger.debug(f"msg: '{self.port}'")
         self.user = self.password = ""
-        if ":" in aws_ses_credentials:
-            self.user, self.password = aws_ses_credentials.split(":")
+        aws_ses_credentials_ = (
+            aws_ses_credentials if aws_ses_credentials else AWS_SES_CREDENTIALS
+        )
+        if ":" in aws_ses_credentials_:
+            self.user, self.password = aws_ses_credentials_.split(":")
         # self.msg = message.Email()
         logger.debug(f"msg: '{self.msg}'")
 

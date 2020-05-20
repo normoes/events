@@ -9,7 +9,7 @@ Events is supposed to be an event module which sends webhooks to:
 """
 
 import logging
-from typing import Tuple, List
+from typing import Tuple, List, Union
 import json
 
 import requests
@@ -211,10 +211,15 @@ class AwsSesEmailHook(EmailHook):
         name="",
         host: str = "",
         port: int = 0,
-        recipients: List[str] = None,
+        aws_ses_credentials: str = "",
+        sender: str = "",
+        sender_name: str = "",
+        recipients: Union[List[str], str] = None,
         realms: Tuple[str] = None,
     ):
-        email = mail.aws_ses.AwsSesEmail(host=host, port=port, recipients=recipients)
+        email = mail.aws_ses.AwsSesEmail(
+            host=host, port=port, recipients=recipients, sender=sender
+        )
         if not email.subject:
             email.subject = name
 
