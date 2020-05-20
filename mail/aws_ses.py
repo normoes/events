@@ -58,18 +58,25 @@ class AwsSesEmail(mail.message.Email):
     def send_mail(self):
         try:
             # Attach the body to the 'msg'.
+            logger.warning(f"attach")
             self.attach_body()
 
+            logger.warning(f"smtlib")
             # stmplib docs recommend calling ehlo() before & after starttls()
             server = smtplib.SMTP(host=self.host, port=self.port)
+            logger.warning(f"ehlo")
             server.ehlo()
             # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
+            logger.warning(f"starttls")
             server.starttls()
             # (220, 'Ready to start TLS')
+            logger.warning(f"ehlo")
             server.ehlo()
             # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
+            logger.warning(f"login")
             server.login(user=self.user, password=self.password)
             # (235, 'Authentication successful.')
+            logger.warning(f"send")
             server.send_message(
                 from_addr=self.sender, to_addrs=self.recipients, msg=self.msg
             )
@@ -78,10 +85,9 @@ class AwsSesEmail(mail.message.Email):
             logger.info("Email sent.")
         except Exception as e:
             logger.warning(f"user {self.user}")
-            logger.warning(f"user {self.password}")
-            logger.warning(f"user {self.sender}")
-            logger.warning(f"user {self.sender_name}")
-            logger.warning(f"user {self.body}")
-            logger.warning(f"user {self.msg}")
-            logger.warning(f"user {self.recipients}")
+            logger.warning(f"password {self.password}")
+            logger.warning(f"sender {self.sender}")
+            logger.warning(f"sender_name {self.sender_name}")
+            logger.warning(f"msg {self.msg}")
+            logger.warning(f"recipients {self.recipients}")
             raise EmailException(str(e))
