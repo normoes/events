@@ -1,6 +1,7 @@
 import smtplib
 import logging
 from typing import List, Union
+from base64 import b64decode
 
 import mail.message
 from mail.environment_variables import (
@@ -51,7 +52,9 @@ class AwsSesEmail(mail.message.Email):
             aws_ses_credentials if aws_ses_credentials else AWS_SES_CREDENTIALS
         )
         if ":" in aws_ses_credentials_:
-            self.user, self.password = aws_ses_credentials_.split(":")
+            credentials = aws_ses_credentials_.split(":")
+            self.user = b64decode(credentials[0])
+            self.password = b64decode(credentials[1])
         # self.msg = message.Email()
         logger.debug(f"msg: '{self.msg}'")
 
@@ -85,7 +88,6 @@ class AwsSesEmail(mail.message.Email):
             logger.info("Email sent.")
         except Exception as e:
             logger.warning(f"user {self.user}")
-            logger.warning(f"password {self.password}")
             logger.warning(f"sender {self.sender}")
             logger.warning(f"sender_name {self.sender_name}")
             logger.warning(f"msg {self.msg}")
