@@ -15,6 +15,7 @@ import json
 import requests
 
 import mail.aws_ses
+import mail.simple
 import mail.message
 from mail.exceptions import EmailException
 
@@ -75,8 +76,6 @@ class EmailHook(WatchEvent):
             else:
                 # Assuming 'str' most of the time.
                 data_ = str(data)
-            logger.warning(data_)
-            logger.warning(type(data_))
             self.email.body_text = data_
             self.email.send_mail()
         except EmailException as e:
@@ -204,8 +203,14 @@ class DockerCloudWebHook(WebHook):
             )
 
 
-class AwsSesEmailHook(EmailHook):
-    """AWS SES email hook event.
+class SimpleEmailHook(EmailHook):
+    """Simple email hook event.
+
+    Needs host and portas well as user credentials (user,password).
+    User credentials are expected to come in the following format: 'user:password'.
+
+    This can also be used with AWS SES.
+    Existing AWS SES SMTP Credentials should be used.
     """
 
     def __init__(
@@ -219,7 +224,7 @@ class AwsSesEmailHook(EmailHook):
         recipients: Union[List[str], str] = None,
         realms: Tuple[str] = None,
     ):
-        email = mail.aws_ses.AwsSesEmail(
+        email = mail.aws_ses.SimpleEmail(
             host=host,
             port=port,
             recipients=recipients,
@@ -229,9 +234,38 @@ class AwsSesEmailHook(EmailHook):
         )
         if not email.subject:
             email.subject = name
-        print(email.sender)
-        print(email.sender_name)
-        print(email.recipients)
+
+        super().__init__(name=name, email=email, realms=realms)
+
+    def trigger(self, data, realm=None, debug=False):
+        if not super().allowed(realm):
+            return
+        logger.warn(f"Trigger Simple email hook for: '{str(self)}'.")
+        self._trigger(data=data, debug=debug)
+
+
+class AwsSesEmailHook(EmailHook):
+    """AWS SES email hook event.
+
+    This requires an existing AWS profile or AWS credentials (AWS access key ID and AWS secret access key).
+    It does not require AWS SES SMTP Credentials.
+
+    No roles or policies are created.
+    """
+
+    def __init__(
+        self,
+        name="",
+        sender: str = "",
+        sender_name: str = "",
+        recipients: Union[List[str], str] = None,
+        realms: Tuple[str] = None,
+    ):
+        email = mail.aws_ses.AwsSesEmail(
+            recipients=recipients, sender=sender, sender_name=sender_name,
+        )
+        if not email.subject:
+            email.subject = name
 
         super().__init__(name=name, email=email, realms=realms)
 
