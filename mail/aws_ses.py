@@ -90,7 +90,8 @@ class AwsSesEmail(mail.message.Email):
             server.quit()
             logger.info("Email sent.")
         except Exception as e:
-            logger.warning(f"user {self.user}")
+            logger.warning(f"user '{self.user}'")
+            logger.warning(f"password '{self.password}'")
             logger.warning(f"sender {self.sender}")
             logger.warning(f"sender_name {self.sender_name}")
             logger.warning(f"msg {self.msg}")
