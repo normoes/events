@@ -1,3 +1,5 @@
+default_language_version:
+    python: python3.8
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v2.5.0
@@ -11,6 +13,7 @@ repos:
   rev: 3.7.9
   hooks:
     - id: flake8
+      stages: [commit]
 - repo: https://github.com/psf/black
   rev: 19.10b0
   hooks:
@@ -24,9 +27,11 @@ repos:
             ^\.venv/|
             ^\.local
         )
-      language_version: python3.7
+      language_version: python3
+      ## Just checking.
+      # args: [--check]
       stages: [commit]
-- repo: https://github.com/cryptosphere-systems/pre-commit-hooks-bandit.git
+- repo: https://github.com/Lucas-C/pre-commit-hooks-bandit.git
   rev: v1.0.4
   hooks:
   - id: python-bandit-vulnerability-check

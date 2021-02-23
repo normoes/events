@@ -4,30 +4,21 @@ import email.utils
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from mail.environment_variables import (
-    SENDER,
-    SENDER_NAME,
-    RECIPIENTS,
-    CONFIGURATION_SET,
-    SUBJECT,
-    BODY_TEXT,
-)
-
 
 class Email:
     def __init__(
         self,
-        sender: str = SENDER,
-        sender_name: str = SENDER_NAME,
-        recipients: Union[List[str], str] = RECIPIENTS,
-        configuration_set: str = CONFIGURATION_SET,
-        subject: str = SUBJECT,
-        body_text: str = BODY_TEXT,
+        sender: str,
+        sender_name: str = "me",
+        recipients: Union[List[str], str] = "",
+        configuration_set: str = None,
+        subject: str = "",
+        body_text: str = "",
     ):
         # This address must be verified with AWS SES.
         # Alternatively the DNS needs to be verified.
-        self.sender = sender if sender else SENDER
-        self.sender_name = sender_name if sender_name else SENDER_NAME
+        self.sender = sender
+        self.sender_name = sender_name
         recipients_ = []
         if recipients:
             if isinstance(recipients, list):
@@ -47,7 +38,7 @@ class Email:
         self.msg["From"] = email.utils.formataddr((self.sender_name, self.sender))
         self.msg["To"] = ", ".join(self.recipients)
         if self.configuration_set:
-            self.msg.add_header("X-SES-CONFIGURATION-SET", CONFIGURATION_SET)
+            self.msg.add_header("X-SES-CONFIGURATION-SET", self.configuration_set)
 
     @property
     def subject(self):

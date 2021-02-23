@@ -1,27 +1,16 @@
 import logging
 from typing import List, Union
 
-import boto3
-from botocore.exceptions import ClientError
 
-
-import mail.message
-from mail.environment_variables import (
-    SENDER,
-    SENDER_NAME,
-    RECIPIENTS,
-    CONFIGURATION_SET,
-    SUBJECT,
-    BODY_TEXT,
-)
-from mail.exceptions import EmailException
+from .message import Email
+from .exceptions import EmailException
 
 logging.basicConfig()
 logger = logging.getLogger("AWSSESMAIL")
 logger.setLevel(logging.INFO)
 
 
-class AwsSesEmail(mail.message.Email):
+class AwsSesEmail(Email):
     """Send an email from your AWS account.
 
     This kind of email does not require AWS SES SMTP Crendentials.
@@ -34,12 +23,12 @@ class AwsSesEmail(mail.message.Email):
 
     def __init__(
         self,
-        sender: str = SENDER,
-        sender_name: str = SENDER_NAME,
-        recipients: Union[List[str], str] = RECIPIENTS,
-        configuration_set: str = CONFIGURATION_SET,
-        subject: str = SUBJECT,
-        body_text: str = BODY_TEXT,
+        sender: str = "",
+        sender_name: str = "me",
+        recipients: Union[List[str], str] = "",
+        configuration_set: str = None,
+        subject: str = "",
+        body_text: str = "",
     ):
         super().__init__(
             sender=sender,
@@ -55,8 +44,12 @@ class AwsSesEmail(mail.message.Email):
         try:
             CHARSET = "UTF-8"
 
+            import boto3
+            from botocore.exceptions import ClientError
+
             # Create a new SES resource and specify a region.
-            client = boto3.client("ses")
+            session = boto3.session.Session()
+            client = session.client("ses")
 
             if self.sender_name:
                 source = f"{self.sender_name} <{self.sender}>"

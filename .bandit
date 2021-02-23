@@ -1,2 +1,2 @@
 [bandit]
-exclude: */tests/*,*/migrations/*,*/__pycache__/*,*/.git/*,*/venv/*
+exclude: */tests/*,*/migrations/*,*/__pycache__/*,*/.git/*,*/venv/*,*/dist/*,*/eventhooks.egg-info/*

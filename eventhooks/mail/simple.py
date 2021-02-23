@@ -2,26 +2,19 @@ import smtplib
 import logging
 from typing import List, Union
 
-import mail.message
-from mail.environment_variables import (
+from .message import Email
+from .environment_variables import (
     HOST,
     PORT,
-    CREDENTIALS,
-    SENDER,
-    SENDER_NAME,
-    RECIPIENTS,
-    CONFIGURATION_SET,
-    SUBJECT,
-    BODY_TEXT,
 )
-from mail.exceptions import EmailException
+from .exceptions import EmailException
 
 logging.basicConfig()
 logger = logging.getLogger("SIMPLEMAIL")
 logger.setLevel(logging.INFO)
 
 
-class SimpleEmail(mail.message.Email):
+class SimpleEmail(Email):
     """Send a simple email using smtplib.
 
     This uses 'smtplib' to send an email and requires a host and port.
@@ -37,13 +30,14 @@ class SimpleEmail(mail.message.Email):
         self,
         host: str = HOST,
         port: int = PORT,
-        credentials: str = CREDENTIALS,
-        sender: str = SENDER,
-        sender_name: str = SENDER_NAME,
-        recipients: Union[List[str], str] = RECIPIENTS,
-        configuration_set: str = CONFIGURATION_SET,
-        subject: str = SUBJECT,
-        body_text: str = BODY_TEXT,
+        credentials: str = "",
+        sender: str = "",
+        sender_name: str = "me",
+        recipients: Union[List[str], str] = "",
+        configuration_set: str = None,
+        subject: str = "",
+        body_text: str = "",
+        tls=True,
     ):
         super().__init__(
             sender=sender,
@@ -58,7 +52,8 @@ class SimpleEmail(mail.message.Email):
         self.port = port if port else PORT
         logger.debug(f"msg: '{self.port}'")
         self.user = self.password = ""
-        credentials_ = credentials if credentials else CREDENTIALS
+        self.tls = tls
+        credentials_ = credentials
         if ":" in credentials_:
             credentials = credentials_.split(":")
             # self.user = b64encode(credentials[0].encode()).decode()
@@ -74,17 +69,16 @@ class SimpleEmail(mail.message.Email):
             self.attach_body()
             # stmplib docs recommend calling ehlo() before & after starttls()
             server = smtplib.SMTP(host=self.host, port=self.port)
-            server.ehlo()
-            # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
-            server.starttls()
-            # (220, 'Ready to start TLS')
-            server.ehlo()
-            # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
-            server.login(user=self.user, password=self.password)
-            # (235, 'Authentication successful.')
-            server.send_message(
-                from_addr=self.sender, to_addrs=self.recipients, msg=self.msg
-            )
+            if self.tls:
+                server.ehlo()
+                # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
+                server.starttls()
+                # (220, 'Ready to start TLS')
+                server.ehlo()
+                # (250, 'email-smtp.amazonaws.com\n8BITMIME\nSIZE 10485760\nSTARTTLS\nAUTH PLAIN LOGIN\nOk')
+                server.login(user=self.user, password=self.password)
+                # (235, 'Authentication successful.')
+            server.send_message(from_addr=self.sender, to_addrs=self.recipients, msg=self.msg)
             # {}
             server.quit()
             logger.info("Email sent.")

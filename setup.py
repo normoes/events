@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-from _version import __version__
+from eventhooks._version import __version__
 
 
 setup(
@@ -23,6 +23,10 @@ setup(
         "Natural Language :: English",
         "Programming Language :: Python",
     ],
-    install_requires=["requests>=2.23.0"],
-    py_modules=["eventhooks"],
+    install_requires=["requests>=2.24.0"],
+    extras_require={
+        "aws": ["boto3>=1.11.14"],
+        # "git": ["GitPython==3.1.11"],
+        "rabbit": ["pika>=1.2.0"],
+    },
 )
