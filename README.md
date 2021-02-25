@@ -62,6 +62,7 @@ There are two email hooks:
 * `AwsSesEmailHook`
     - Needs to be installed with `aws` extra: `pip install eventhooks[aws]`
     - Uses `boto3` and requires AWS credentials (AWS access key ID and AWS secret access key).
+    - If not configured otherwise, please set the required AWS region using the environment variable `AWS_DEFAULT_REGION="eu-east-1"`.
 
 There is a AMQP (e.g. RabbitMQ) hook:
 * `RabbitMqHook`

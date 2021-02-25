@@ -51,8 +51,8 @@ class SimpleEmail(Email):
         logger.debug(f"msg: '{self.host}'")
         self.port = port if port else PORT
         logger.debug(f"msg: '{self.port}'")
-        self.user = self.password = ""
         self.tls = tls
+        self.user = self.password = ""
         credentials_ = credentials
         if ":" in credentials_:
             credentials = credentials_.split(":")

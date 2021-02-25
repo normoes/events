@@ -145,22 +145,34 @@ class RabbitMqHook(WatchEvent):
         )
         logger.debug(f"RabbitMqHook event URL '{self.host}'.")
         logger.debug(f"RabbitMqHook event REALMS '{self.realms}'.")
+
         # 'pika' connection parameters
         import pika
 
+        if not self.user or not self.password:
+            raise pika.exceptions.ProbableAuthenticationError("Event '{self.name}'. Check RabbitMQ username/password.")
         credentials = pika.PlainCredentials(self.user, self.password)
         self.conn_params = pika.ConnectionParameters(host=self.host, virtual_host=self.vhost, credentials=credentials)
 
     def trigger(self, data, realm=None, debug=False):
         if not self.allowed(realm):
             return
-        logger.warn(f"Trigger RabbitMqHook: '{str(self)}' with '{data}'.")
+        logger.info(f"Event '{self.name}'. Trigger RabbitMqHook: '{str(self)}' with '{data}'.")
         self._trigger(data=data, debug=debug)
 
     def _trigger(self, data: AnyStr, debug=False):
         if debug:
             logger.debug("[DEBUG]: Not triggering.")
             return None
+        if not data:
+            logger.error(f"Event '{self.name}'. No info for trigger: '{str(self)}'.")
+            return
+        data_ = ""
+        if isinstance(data, dict):
+            data_ = json.dumps(data, indent=2)
+        else:
+            # Assuming 'str' most of the time.
+            data_ = str(data)
         import pika
 
         try:
@@ -168,13 +180,13 @@ class RabbitMqHook(WatchEvent):
             conn = pika.BlockingConnection(self.conn_params)
             try:
                 channel = conn.channel()
-                channel.basic_publish(exchange=self.exchange, routing_key=self.routing_key, body=data)
+                channel.basic_publish(exchange=self.exchange, routing_key=self.routing_key, body=data_)
             finally:
                 conn.close()
         except (pika.exceptions.AMQPConnectionError) as e:
-            logger.error(f"AMQP connection error with '{str(self)}'. Error: '{str(e)}'.")
+            logger.error(f"Event '{self.name}'. AMQP connection error with '{str(self)}'. Error: '{str(e)}'.")
         except (pika.exceptions.AMQPError) as e:
-            logger.error(f"AMQP error with '{str(self)}'. Error: '{str(e)}'.")
+            logger.error(f"Event '{self.name}'. AMQP error with '{str(self)}'. Error: '{str(e)}'.")
 
     def __str__(self):
         return super().__str__()
@@ -204,11 +216,13 @@ class WebHook(WatchEvent):
     def trigger(self, data, realm=None, debug=False):
         if not self.allowed(realm):
             return
-        logger.warn(f"Trigger raw webhook: '{str(self)}' with '{data}'.")
+        logger.info(f"Event '{self.name}'. Trigger raw webhook: '{str(self)}' with '{data}'.")
         response = self._trigger(data=data, debug=debug)
         if response:
             help_text = re.sub("\n", "", response.text)
-            logger.warn(f"Raw webhook response: '{response.status_code}', '{help_text[:25]}...{help_text[-25:]}'.")
+            logger.warn(
+                f"Event '{self.name}'. Raw webhook response: '{response.status_code}', '{help_text[:25]}...{help_text[-25:]}'."
+            )
 
     def __str__(self):
         return super().__str__()
@@ -221,9 +235,9 @@ class WebHook(WatchEvent):
         try:
             response = requests.post(self.url, json=data, headers=self.HEADERS)
         except (requests.exceptions.MissingSchema, requests.exceptions.RequestException,) as e:
-            logger.error(f"Error: '{str(e)}'.")
+            logger.error(f"Event '{self.name}'. Error: '{str(e)}'.")
         if response is None:
-            logger.error("No response.")
+            logger.error("Event '{self.name}'. No response.")
             return None
         try:
             logger.debug(f"[{response.status_code}], {response.json()}")
@@ -251,15 +265,15 @@ class MattermostWebHook(WebHook):
         if not super().allowed(realm):
             return
         if not data:
-            logger.error(f"No info for trigger: '{str(self)}'.")
+            logger.error(f"Event '{self.name}'. No info for trigger: '{str(self)}'.")
             return
-        logger.warn(f"Trigger mattermost webhook: '{str(self)}' with '{data}'.")
+        logger.info(f"Event '{self.name}'. Trigger mattermost webhook: '{str(self)}' with '{data}'.")
         data_ = {"text": f"{data}"}
         response = self._trigger(data=data_, debug=debug)
         if response is not None:
             help_text = re.sub("\n", "", response.text)
             logger.warn(
-                f"Mattermost webhook response: '{response.status_code}', '{help_text[:25]}...{help_text[-25:]}'."
+                f"Event '{self.name}'. Mattermost webhook response: '{response.status_code}', '{help_text[:25]}...{help_text[-25:]}'."
             )
 
     def __str__(self):
@@ -288,14 +302,18 @@ class DockerCloudWebHook(WebHook):
         if not super().allowed(realm):
             return
         if not self.source_branch or not self.source_type:
-            logger.error(f"No info for trigger: '{str(self)}'.")
+            logger.error(f"Event '{self.name}'. No info for trigger: '{str(self)}'.")
             return
-        logger.warn(f"Trigger dockercloud webhook for '{self.source_type}' '{self.source_branch}': '{str(self)}'.")
+        logger.info(
+            f"Event '{self.name}'. Trigger dockercloud webhook for '{self.source_type}' '{self.source_branch}': '{str(self)}'."
+        )
         data_ = {"source_type": self.source_type, "source_name": self.source_branch}
 
         response = self._trigger(data=data_, debug=debug)
         if response is not None:
-            logger.warn(f"Dockercloud webhook response: '{response.status_code}', '{response.text}'.")
+            logger.warn(
+                f"Event '{self.name}'. Dockercloud webhook response: '{response.status_code}', '{response.text}'."
+            )
 
     def __str__(self):
         return super().__str__()
@@ -324,7 +342,7 @@ class EmailHook(WatchEvent):
             self.email.body_text = data_
             self.email.send_mail()
         except EmailException as e:
-            logger.error(f"Error: '{str(e)}'.")
+            logger.error(f"Event '{self.name}'. Error: '{str(e)}'.")
             return
 
     def __str__(self):
@@ -372,7 +390,7 @@ class SimpleEmailHook(EmailHook):
     def trigger(self, data: Union[dict, str], realm=None, debug=False):
         if not super().allowed(realm):
             return
-        logger.warn(f"Trigger Simple email hook for: '{str(self)}'.")
+        logger.info(f"Event '{self.name}'. Trigger Simple email hook for: '{str(self)}'.")
         self._trigger(data=data, debug=debug)
 
     def __str__(self):
@@ -407,7 +425,7 @@ class AwsSesEmailHook(EmailHook):
     def trigger(self, data: Union[dict, str], realm=None, debug=False):
         if not super().allowed(realm):
             return
-        logger.warn(f"Trigger AWS SES email hook for: '{str(self)}'.")
+        logger.info(f"Event '{self.name}'. Trigger AWS SES email hook for: '{str(self)}'.")
         self._trigger(data=data, debug=debug)
 
     def __str__(self):
