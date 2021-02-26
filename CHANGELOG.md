@@ -1,3 +1,9 @@
+# 2021-02-26
+* Optimize logging.
+
+# 2021-02-25
+* Convert AMQP message to `str` from `dict`.
+
 # 2021-02-23
 * Removed environment variables for email configuration, leaving only `EVENT_MAIL_HOST` and `EVENT_MAIL_PORT`.
 * Added support for sending emails without TLS.

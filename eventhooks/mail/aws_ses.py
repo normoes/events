@@ -5,9 +5,7 @@ from typing import List, Union
 from .message import Email
 from .exceptions import EmailException
 
-logging.basicConfig()
-logger = logging.getLogger("AWSSESMAIL")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("EventHooks.AwsSesEmail")
 
 
 class AwsSesEmail(Email):

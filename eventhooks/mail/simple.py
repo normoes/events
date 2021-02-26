@@ -9,9 +9,7 @@ from .environment_variables import (
 )
 from .exceptions import EmailException
 
-logging.basicConfig()
-logger = logging.getLogger("SIMPLEMAIL")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("EventHooks.SimpleEmail")
 
 
 class SimpleEmail(Email):

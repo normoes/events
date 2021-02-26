@@ -20,8 +20,9 @@ from .mail import message
 from .mail.exceptions import EmailException
 
 
-logging.basicConfig()
+logging.basicConfig(format="%(asctime)a - %(name)s [%(levelname)s]: %(message)s")
 logger = logging.getLogger("EventHooks")
+
 logger.setLevel(logging.INFO)
 
 

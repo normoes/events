@@ -329,3 +329,32 @@ Now, when a new push to `master` is found, you would pass the configured realm `
 
     trigger_events(data={"msg": "Push to master found."}, realm="GITHUB_MASTER")
 ```
+
+## Logging
+
+Below is a small example of how to set a common log format when using the `eventhooks` module.
+The idea is to have a common log format throughout your entire application.
+
+```
+import logging
+import sys
+
+import eventhooks.eventhooks
+from eventhooks.mail import aws_ses
+from eventhooks.mail import simple
+
+
+# Your app logger.
+logger = logging.getLogger("TestApp")
+logger.setLevel(logging.DEBUG)
+# A 'StreamHandler' printing to the terminal.
+ch = logging.StreamHandler(sys.stdout)
+ch.setFormatter(logging.Formatter("%(asctime)a - %(name)s [%(levelname)s] [%(lineno)s]: %(message)s"))
+ch.setLevel(logging.DEBUG)
+logger.addHandler(ch)
+logger.propagate = False
+# The 'eventhooks' logger.
+logger_ = logging.getLogger("EventHooks")
+logger_.addHandler(ch)
+logger_.propagate = False
+```
