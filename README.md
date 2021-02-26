@@ -70,6 +70,8 @@ There is a AMQP (e.g. RabbitMQ) hook:
     - The default`vhost` is `/`.
     - The default configuration sends messages directly to queue `example_queue`.
 
+**_Note_**:
+* There is a eventhook factory, that makes a more dynamic configuration possible. For more details, see **Using the eventhook factory**.
 
 ### Web hooks
 #### WebHook configuration
@@ -180,6 +182,9 @@ Some general email connection settings can be configured using environment varia
 
 #### AwsSesEmailHook configuration
 
+**_Note_**:
+* For this to work properly set the environemnt variable `AWS_DEFAULT_REGION=us-east-1`. Replace the AWS region to use by the one appropriate to your use case.
+
 The `AwsSesEmailHook` can be configured like this:
 ```python
     from eventhooks.eventhooks import AwsSesEmailHook
@@ -190,13 +195,6 @@ The `AwsSesEmailHook` can be configured like this:
         recipients=["me@peer.xyz"],
     )
 ```
-
-Some general email connection settings can be configured using environment variables:
-
-| environment variable | description | default value |
-|----------------------|-------------|---------------|
-| `EVENT_MAIL_HOST` | Email server host. |  `"email-smtp.us-west-2.amazonaws.com"` |
-| `EVENT_MAIL_PORT` | Email server port. | `587` |
 
 **_Note_**:
 * So far emails are sent in plain text only, no option for HTML.
@@ -248,7 +246,7 @@ The `RabbitMqHook` can be configured like this:
     )
 ```
 
-## Understanding realm
+## Understanding realms
 
 Realms provide a context to an event and restrict the event action by caller origin.
 * A realm can be a simple string, which is set on initialization of an event.
@@ -328,6 +326,33 @@ Now, when a new push to `master` is found, you would pass the configured realm `
 
 
     trigger_events(data={"msg": "Push to master found."}, realm="GITHUB_MASTER")
+```
+
+## Using the eventhook factory
+
+Instead of configuring events as show above, the `event_heper` can be used to return an already configured event.
+
+The `type` in the event's configuration needs to be one of:
+* `WebHook`
+* `DockerCloudWebHook`
+* `MattermostWebHook`
+* `SimpleEmailHook`
+* `AwsSesEmailHook`
+* `RabbitMqHook`
+
+
+```
+from eventhooks import event_helper
+
+event_config = {
+    "type": "SimpleEmailHook",
+    "sender" mail@company.com,
+    "sender_name": "maintenance",
+    "recipients": ["devs@company.com"],
+    "realms": ["log_contains_key"],
+}
+
+event = event_helper.eventhook_factory("event_name", event_config)
 ```
 
 ## Logging

@@ -1,5 +1,6 @@
 # 2021-02-26
-* Optimize logging.
+* Optimized logging.
+* Added `eventhooks` factory for more dynamic eventhook creation.
 
 # 2021-02-25
 * Convert AMQP message to `str` from `dict`.
