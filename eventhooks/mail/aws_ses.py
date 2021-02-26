@@ -1,4 +1,5 @@
 import logging
+import sys
 from typing import List, Union
 
 
@@ -40,10 +41,14 @@ class AwsSesEmail(Email):
 
     def send_mail(self):
         try:
-            CHARSET = "UTF-8"
-
             import boto3
             from botocore.exceptions import ClientError
+        except (ImportError) as e:
+            logger.critical(f"Please install eventhooks[aws]. Error: '{str(e)}'.")
+            sys.exit(1)
+
+        try:
+            CHARSET = "UTF-8"
 
             # Create a new SES resource and specify a region.
             session = boto3.session.Session()

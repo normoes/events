@@ -9,6 +9,7 @@ Events is supposed to be an event module which sends webhooks to:
 """
 
 import logging
+import sys
 from typing import Tuple, List, Union, Optional
 from typing import AnyStr  # TypeVar('AnyStr', str, bytes).
 import json
@@ -148,7 +149,11 @@ class RabbitMqHook(WatchEvent):
         logger.debug(f"RabbitMqHook event REALMS '{self.realms}'.")
 
         # 'pika' connection parameters
-        import pika
+        try:
+            import pika
+        except (ImportError) as e:
+            logger.critical(f"Please install eventhooks[rabbit]. Error: '{str(e)}'.")
+            sys.exit(1)
 
         if not self.user or not self.password:
             raise pika.exceptions.ProbableAuthenticationError("Event '{self.name}'. Check RabbitMQ username/password.")

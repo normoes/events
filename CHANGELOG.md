@@ -1,6 +1,7 @@
 # 2021-02-26
 * Optimized logging.
 * Added `eventhooks` factory for more dynamic eventhook creation.
+* Add `extras_require` `ImportError`.
 
 # 2021-02-25
 * Convert AMQP message to `str` from `dict`.
