@@ -36,7 +36,7 @@ six==1.15.0
     # via python-dateutil
 smmap==3.0.5
     # via gitdb
-urllib3==1.26.3
+urllib3==1.26.4
     # via
     #   botocore
     #   requests
