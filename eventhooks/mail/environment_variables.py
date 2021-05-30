@@ -1,7 +1,8 @@
 import os
 import sys
 
-HOST_DEFAULT = "email-smtp.us-west-2.amazonaws.com"
+REGION_DEFAULT = "us-west-2"
+HOST_DEFAULT = f"email-smtp.{REGION_DEFAULT}.amazonaws.com"
 PORT_DEFAULT = 587
 
 # AWS SES region endpoint.

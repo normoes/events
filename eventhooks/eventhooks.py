@@ -152,7 +152,7 @@ class RabbitMqHook(WatchEvent):
         try:
             import pika
         except (ImportError) as e:
-            logger.critical(f"Please install eventhooks[rabbit]. Error: '{str(e)}'.")
+            logger.critical(f"Please install 'eventhooks[rabbit]'. Error: '{str(e)}'.")
             sys.exit(1)
 
         if not self.user or not self.password:
