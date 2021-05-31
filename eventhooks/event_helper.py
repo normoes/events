@@ -30,6 +30,7 @@ def eventhook_factory(event_name: str, config: dict):
         data["sender"] = config.get("sender", "")
         data["sender_name"] = config.get("sender_name", "")
         data["recipients"] = config.get("recipients", [])
+        data["region"] = config.get("region", "")
     elif event_type == "SimpleEmailHook":
         data["host"] = config.get("host", "")
         data["port"] = config.get("port", 0)

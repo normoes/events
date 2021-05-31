@@ -430,6 +430,7 @@ class AwsSesEmailHook(EmailHook):
         sender: str = "",
         sender_name: str = "",
         recipients: Union[List[str], str] = None,
+        region: str = "",
         realms: Tuple[str] = None,
     ):
         from .mail import aws_ses
@@ -438,6 +439,7 @@ class AwsSesEmailHook(EmailHook):
             recipients=recipients,
             sender=sender,
             sender_name=sender_name,
+            region=region,
         )
         if not email.subject:
             email.subject = name
