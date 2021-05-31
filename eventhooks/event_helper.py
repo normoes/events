@@ -22,8 +22,8 @@ def eventhook_factory(event_name: str, config: dict):
     data = {"name": event_name, "realms": config.get("realms", [])}
     try:
         class_ = getattr(eventhooks, event_type)
-    except (AttributeError) as e:
-        logger.error(f"Could not import 'eventhooks' type '{event_type}'. Error: {str(e)}.")
+    except (AttributeError) as e_attr:
+        logger.error(f"Could not import 'eventhooks' type '{event_type}'. Error: {str(e_attr)}.")
         return None
     logger.debug(f"Trying to configure '{event_type}' with '{config}'.")
     if event_type == "AwsSesEmailHook":
