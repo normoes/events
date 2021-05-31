@@ -53,7 +53,7 @@ class AwsSesEmail(Email):
         config = {"signature_version": "v4", "retries": {"max_attempts": 10, "mode": "standard"}}
         # Use 'boto3' default value when no region is given.
         if region:
-            config.update({"region_name": "region"})
+            config.update({"region_name": region})
         boto_config = Config(**config)
         # Create a new SES resource and specify a region.
         session = boto3.session.Session()
