@@ -80,5 +80,5 @@ class SimpleEmail(Email):
             # {}
             server.quit()
             logger.info("Email sent.")
-        except Exception as e:
-            raise EmailException(str(e))
+        except Exception as e_general:
+            raise EmailException(str(e_general)) from e_general

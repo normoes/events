@@ -4,3 +4,4 @@ build/
 eventhooks.egg-info/
 
 *.vim
+venv/

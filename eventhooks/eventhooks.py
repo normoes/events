@@ -28,8 +28,7 @@ logger.setLevel(logging.INFO)
 
 
 class WatchEvent:
-    """Event base class.
-    """
+    """Event base class."""
 
     def __init__(self, name: str = "", description: str = "", realms: Tuple[str] = None):
         self.name = name
@@ -79,17 +78,17 @@ class WatchEvent:
 #     def trigger(self, data, realm=None, debug=False):
 #         if not self.allowed(realm):
 #             return
-#         logger.warn(f"Trigger raw webhook: '{str(self)}' with '{data}'.")
+#         logger.warning(f"Trigger raw webhook: '{str(self)}' with '{data}'.")
 #         response = self._trigger(data=data, debug=debug)
 #         if response:
 #             help_text = re.sub("\n", "", response.text)
-#             logger.warn(
+#             logger.warning(
 #                 f"Raw webhook response: '{response.status_code}', '{help_text[:25]}...{help_text[-25:]}'."
 #             )
 #
 #     def _trigger(self, data=None, debug=False):
 #         if debug:
-#             logger.debug("[DEBUG]: Not triggering.")
+#             logger.debug("Not triggering.")
 #             return None
 #         response = None
 #         try:
@@ -151,8 +150,8 @@ class RabbitMqHook(WatchEvent):
         # 'pika' connection parameters
         try:
             import pika
-        except (ImportError) as e:
-            logger.critical(f"Please install eventhooks[rabbit]. Error: '{str(e)}'.")
+        except (ImportError) as e_import:
+            logger.critical(f"Please install 'eventhooks[rabbit]'. Error: '{str(e_import)}'.")
             sys.exit(1)
 
         if not self.user or not self.password:
@@ -168,8 +167,8 @@ class RabbitMqHook(WatchEvent):
 
     def _trigger(self, data: AnyStr, debug=False):
         if debug:
-            logger.debug("[DEBUG]: Not triggering.")
-            return None
+            logger.debug("Not triggering.")
+            return
         if not data:
             logger.error(f"Event '{self.name}'. No info for trigger: '{str(self)}'.")
             return
@@ -179,6 +178,7 @@ class RabbitMqHook(WatchEvent):
         else:
             # Assuming 'str' most of the time.
             data_ = str(data)
+
         import pika
 
         try:
@@ -189,13 +189,14 @@ class RabbitMqHook(WatchEvent):
                 channel.basic_publish(exchange=self.exchange, routing_key=self.routing_key, body=data_)
             finally:
                 conn.close()
-        except (pika.exceptions.AMQPConnectionError) as e:
-            logger.error(f"Event '{self.name}'. AMQP connection error with '{str(self)}'. Error: '{str(e)}'.")
-        except (pika.exceptions.AMQPError) as e:
-            logger.error(f"Event '{self.name}'. AMQP error with '{str(self)}'. Error: '{str(e)}'.")
+        except (pika.exceptions.AMQPConnectionError) as e_amqp:
+            logger.error(f"Event '{self.name}'. AMQP connection error with '{str(self)}'. Error: '{str(e_amqp)}'.")
+        except (pika.exceptions.AMQPError) as e_amqp:
+            logger.error(f"Event '{self.name}'. AMQP error with '{str(self)}'. Error: '{str(e_amqp)}'.")
+        return
 
-    def __str__(self):
-        return super().__str__()
+    # def __str__(self):
+    #     return super().__str__()
 
 
 class WebHook(WatchEvent):
@@ -226,36 +227,38 @@ class WebHook(WatchEvent):
         response = self._trigger(data=data, debug=debug)
         if response:
             help_text = re.sub("\n", "", response.text)
-            logger.warn(
+            logger.warning(
                 f"Event '{self.name}'. Raw webhook response: '{response.status_code}', '{help_text[:25]}...{help_text[-25:]}'."
             )
 
-    def __str__(self):
-        return super().__str__()
+    # def __str__(self):
+    #     return super().__str__()
 
     def _trigger(self, data=None, debug=False):
         if debug:
-            logger.debug("[DEBUG]: Not triggering.")
+            logger.debug("Not triggering.")
             return None
         response = None
         try:
             response = requests.post(self.url, json=data, headers=self.HEADERS)
-        except (requests.exceptions.MissingSchema, requests.exceptions.RequestException,) as e:
-            logger.error(f"Event '{self.name}'. Error: '{str(e)}'.")
+        except (
+            requests.exceptions.MissingSchema,
+            requests.exceptions.RequestException,
+        ) as e_request:
+            logger.error(f"Event '{self.name}'. Error: '{str(e_request)}'.")
         if response is None:
             logger.error("Event '{self.name}'. No response.")
             return None
         try:
             logger.debug(f"[{response.status_code}], {response.json()}")
-        except Exception:
-            logger.debug(f"[{response.status_code}], {response.text}")
+        except ValueError as e_json:
+            logger.debug(f"[{response.status_code}], {response.text}: {str(e_json)}")
 
         return response
 
 
 class MattermostWebHook(WebHook):
-    """Mattermost webhook event.
-    """
+    """Mattermost webhook event."""
 
     URL = "{host}/hooks/{token}"
 
@@ -278,22 +281,27 @@ class MattermostWebHook(WebHook):
         response = self._trigger(data=data_, debug=debug)
         if response is not None:
             help_text = re.sub("\n", "", response.text)
-            logger.warn(
+            logger.warning(
                 f"Event '{self.name}'. Mattermost webhook response: '{response.status_code}', '{help_text[:25]}...{help_text[-25:]}'."
             )
 
-    def __str__(self):
-        return super().__str__()
+    # def __str__(self):
+    #     return super().__str__()
 
 
 class DockerCloudWebHook(WebHook):
-    """Dockerhub webhook event.
-    """
+    """Dockerhub webhook event."""
 
     URL = "https://hub.docker.com/api/build/v1/source/{source}/trigger/{trigger}/call/"
 
     def __init__(
-        self, name="", source_branch="master", source_type="Branch", source="", trigger="", realms: Tuple[str] = None,
+        self,
+        name="",
+        source_branch="master",
+        source_type="Branch",
+        source="",
+        trigger="",
+        realms: Tuple[str] = None,
     ):
         self.source_branch = source_branch
         self.source_type = source_type
@@ -317,17 +325,20 @@ class DockerCloudWebHook(WebHook):
 
         response = self._trigger(data=data_, debug=debug)
         if response is not None:
-            logger.warn(
+            logger.warning(
                 f"Event '{self.name}'. Dockercloud webhook response: '{response.status_code}', '{response.text}'."
             )
 
-    def __str__(self):
-        return super().__str__()
+    # def __str__(self):
+    #     return super().__str__()
 
 
 class EmailHook(WatchEvent):
     def __init__(
-        self, name: str = "", email: message.Email = None, realms: Tuple[str] = None,
+        self,
+        name: str = "",
+        email: message.Email = None,
+        realms: Tuple[str] = None,
     ):
         self.email = email
 
@@ -335,8 +346,8 @@ class EmailHook(WatchEvent):
 
     def _trigger(self, data: Optional[Union[dict, str]], debug=False):
         if debug:
-            logger.debug("[DEBUG]: Not triggering.")
-            return None
+            logger.debug("Not triggering.")
+            return
         try:
             data_ = ""
             if data:
@@ -347,9 +358,10 @@ class EmailHook(WatchEvent):
                     data_ = str(data)
             self.email.body_text = data_
             self.email.send_mail()
-        except EmailException as e:
-            logger.error(f"Event '{self.name}'. Error: '{str(e)}'.")
-            return
+        except EmailException as e_mail:
+            logger.error(f"Event '{self.name}'. Error: '{str(e_mail)}'.")
+
+        return
 
     def __str__(self):
         return super().__str__() + f" With subject '{self.email.subject}' to '{self.email.recipients}'."
@@ -399,8 +411,8 @@ class SimpleEmailHook(EmailHook):
         logger.info(f"Event '{self.name}'. Trigger Simple email hook for: '{str(self)}'.")
         self._trigger(data=data, debug=debug)
 
-    def __str__(self):
-        return super().__str__()
+    # def __str__(self):
+    #     return super().__str__()
 
 
 class AwsSesEmailHook(EmailHook):
@@ -422,7 +434,11 @@ class AwsSesEmailHook(EmailHook):
     ):
         from .mail import aws_ses
 
-        email = aws_ses.AwsSesEmail(recipients=recipients, sender=sender, sender_name=sender_name,)
+        email = aws_ses.AwsSesEmail(
+            recipients=recipients,
+            sender=sender,
+            sender_name=sender_name,
+        )
         if not email.subject:
             email.subject = name
 
@@ -434,5 +450,5 @@ class AwsSesEmailHook(EmailHook):
         logger.info(f"Event '{self.name}'. Trigger AWS SES email hook for: '{str(self)}'.")
         self._trigger(data=data, debug=debug)
 
-    def __str__(self):
-        return super().__str__()
+    # def __str__(self):
+    #     return super().__str__()

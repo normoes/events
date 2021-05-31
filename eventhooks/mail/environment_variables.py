@@ -1,13 +1,14 @@
 import os
 import sys
 
-HOST_DEFAULT = "email-smtp.us-west-2.amazonaws.com"
+REGION_DEFAULT = "us-west-2"
+HOST_DEFAULT = f"email-smtp.{REGION_DEFAULT}.amazonaws.com"
 PORT_DEFAULT = 587
 
 # AWS SES region endpoint.
 HOST = os.getenv("EVENT_MAIL_HOST", HOST_DEFAULT)
 # AWS SES port.
-PORT = int(os.getenv("EVENT_MAIL_PORT", PORT_DEFAULT))
+PORT = int(os.getenv("EVENT_MAIL_PORT", str(PORT_DEFAULT)))
 try:
     PORT = int(PORT)
 except ValueError:
