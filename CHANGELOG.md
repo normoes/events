@@ -1,3 +1,7 @@
+# 2021-05-28
+* Apply `pylint` and `flake8`.
+* Add region support for `AwsSesEmailHook` (`boto3`).
+
 # 2021-02-26
 * Optimized logging.
 * Added `eventhooks` factory for more dynamic eventhook creation.
